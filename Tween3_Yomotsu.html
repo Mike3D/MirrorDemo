@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+	<html lang="en">
+
+	<head>
+		<title>Tween Object Yomotsu</title>
+		<meta charset="utf-8" name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	</head>
+
+	<style>
+		body { margin: 0; overflow: hidden; } /* set margin to 0 and overflow to hidden, to go fullscreen */
+
+		#container {
+			position: absolute;
+			left: 50%;
+			bottom: 0;
+			width: 240px;
+			height: 60px;
+			transform: translateX(-50%)
+		}
+
+		/* Bottom layout */
+		#prevBtn { position: absolute; left: 0; bottom: 0; font-size: 60px }
+		#replayBtn { position: absolute; left: 50%; transform: translateX(-50%); bottom: 20px; width: 90px }
+		#nextBtn { position: absolute; right: 0; bottom: 0; font-size: 60px }
+	</style>
+
+	<body>
+		<div id="container">
+			<label id="prevBtn">👈</label>
+			<input type="range" min="0" max="10" value="0" step="0.1" id="replayBtn" orient="horizontal">
+			<label id="nextBtn">👉</label>
+		</div>
+	</body>
+
+	<script src="https://cdn.jsdelivr.net/npm/camera-controls/dist/camera-controls.min.js"></script>
+
+	<script type="module">
+
+import * as THREE from 'https://cdn.skypack.dev/three@0.136/build/three.module.js';
+import {GLTFLoader} from 'https://cdn.skypack.dev/three@0.136/examples/jsm/loaders/GLTFLoader.js';
+
+CameraControls.install({ THREE: THREE });
+
+//================
+// Camera tweener using Yomotsu camera-controls library
+//================
+
+/*
+	In this sample, we are rendering the scene on-demand, ie only when user interacts with the scene (optimization).
+	OrbitControls & Tween libraries are replaced by Yomotsu camera-controls library.
+	Yomotsu is lighter & easier to setup.
+
+	To setup a desired camera position, pick a camera position & rotation that look good, then press 'T' to log it
+
+	Then you can move to that camera position like so:
+
+		const enableTransition = true; // Whether to animate or jump to the new position
+		controls.setLookAt(position.x, position.y, position.z, target.x, target.y, target.z, enableTransition);
+
+	If target unchanged, use controls.setPosition(position.x, position.y, position.z, enableTransition);
+	If position unchanged, use controls.setTarget(target.x, target.y, target.z, enableTransition);
+*/
+
+
+// Global variables
+const clock = new THREE.Clock();
+var camera, scene, renderer, controls;
+
+// Execute
+init();
+animate();
+
+function init()
+{
+	// HUD
+	var container = document.createElement('div');
+	document.body.appendChild(container);
+
+	// WebGL renderer
+	renderer = new THREE.WebGLRenderer({ antialias: true });
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	container.appendChild(renderer.domElement);
+
+	// Scene
+	scene = new THREE.Scene();
+
+	// Camera
+	camera = new THREE.PerspectiveCamera(15, window.innerWidth / window.innerHeight, 0.1, 40); // fov, aspect, near, far
+
+	controls = new CameraControls(camera, renderer.domElement);
+	ResetCam(); // Set camera position & target
+	controls.maxDistance = 30;
+	controls.minDistance = 1;
+
+	// As we are rendering on-demand, use a loading Manager to initialy render the scene when everything is loaded
+	const loadingManager = new THREE.LoadingManager( () =>
+	{
+		renderer.render(scene, camera);
+	});
+
+	// Character
+	const loader = new GLTFLoader(loadingManager);
+	loader.load('models/Xbot.glb', function (gltf)
+	{
+		let model = gltf.scene;
+		scene.add(model);
+
+		// Assign reflection material
+		const material = new THREE.MeshNormalMaterial();
+		model.traverse( function (object)
+		{
+			if (object.isMesh)
+			{
+				object.material = material;
+				object.frustumCulled = false;
+			}
+		});
+	});
+
+	// Subscribe to events
+	window.addEventListener('resize', OnWindowResize);
+	window.addEventListener('keydown', OnKeyDown);
+}
+
+function OnKeyDown(event)
+{
+	switch (event.keyCode)
+	{
+		case 84:	// 'T' : log CameraControls position & target
+			const position = new THREE.Vector3();
+			const target = new THREE.Vector3();
+			controls.getPosition(position);
+			controls.getTarget(target);
+			console.log(position, target);
+			break;
+	}
+}
+
+function ResetCam(smooth=false)
+{
+	MoveCamTo(new THREE.Vector3(0, 0.9, 7), new THREE.Vector3(0, 0.9, 0), smooth);
+}
+
+function MoveCamTo(pos, target, smooth=true)
+{
+	controls.setLookAt(pos.x, pos.y, pos.z, target.x, target.y, target.z, smooth);
+}
+
+prevBtn.onclick = function PlayPrevious()
+{
+	controls.setPosition(-8, 0.9, 0, true); // Right view
+}
+
+replayBtn.onclick = function Replay()
+{
+	ResetCam(true);
+}
+
+nextBtn.onclick = function PlayNext()
+{
+	controls.setPosition(8, 0.9, 0, true); // Left view
+//	MoveCamTo(new THREE.Vector3(0, 0.9, 40), new THREE.Vector3(0, 0.9, 1), true);
+}
+
+function OnWindowResize()
+{
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.render(scene, camera);
+}
+
+function animate()
+{
+	// Update camera controls
+	const delta = clock.getDelta();
+	const controlsUpdated = controls.update(delta); // Check for interaction or transition. If none, do not render (optimization)
+
+	// Relaunch the 'timer'
+	requestAnimationFrame(animate);
+
+	if (controlsUpdated)
+		renderer.render(scene, camera);
+}
+
+	</script>
+</html>
