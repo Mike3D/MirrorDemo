@@ -32,7 +32,7 @@
 		</div>
 	</body>
 
-	<script src="https://cdn.jsdelivr.net/npm/camera-controls/dist/camera-controls.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/camera-controls@1.33.2/dist/camera-controls.min.js"></script>
 
 	<script type="module">
 
@@ -65,6 +65,7 @@ CameraControls.install({ THREE: THREE });
 // Global variables
 const clock = new THREE.Clock();
 var camera, scene, renderer, controls;
+let lastTapTime = 0;
 
 // Execute
 init();
@@ -120,6 +121,18 @@ function init()
 	// Subscribe to events
 	window.addEventListener('resize', OnWindowResize);
 	window.addEventListener('keydown', OnKeyDown);
+}
+
+// Detect triple-tap on touch devices
+if (matchMedia('(any-pointer: coarse)').matches)
+{
+	renderer.domElement.ontouchstart = function detectTripleTap()
+	{
+		const now = performance.now();
+		const isDoubleTap = now - lastTapTime < 250;
+		controls.touches.one = isDoubleTap && controls.currentAction !== CameraControls.ACTION.TOUCH_ZOOM ? CameraControls.ACTION.TOUCH_ZOOM : CameraControls.ACTION.TOUCH_ROTATE;
+		lastTapTime = now;
+	}
 }
 
 function OnKeyDown(event)
