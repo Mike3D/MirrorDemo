@@ -7,7 +7,7 @@
 	</head>
 
 	<style>
-		body { margin: 0; overflow: hidden; } /* set margin to 0 and overflow to hidden, to go fullscreen */
+		body { margin: 0; overflow: hidden } /* set margin to 0 and overflow to hidden, to go fullscreen */
 
 		#container {
 			position: absolute;
@@ -25,6 +25,7 @@
 	</style>
 
 	<body>
+		<div id="debug"></div>
 		<div id="container">
 			<label id="prevBtn">👈</label>
 			<input type="range" min="0" max="10" value="0" step="0.1" id="replayBtn" orient="horizontal">
@@ -92,6 +93,8 @@ function init()
 	ResetCam(); // Set camera position & target
 	controls.maxDistance = 30;
 	controls.minDistance = 1;
+	
+	controls.touches.two = CameraControls.ACTION.TOUCH_DOLLY; // 2 fingers : default (TOUCH_DOLLY_TRUCK) mixes truck (pan) & dolly (zoom)
 
 	// As we are rendering on-demand, use a loading Manager to initialy render the scene when everything is loaded
 	const loadingManager = new THREE.LoadingManager( () =>
@@ -130,10 +133,13 @@ if (matchMedia('(any-pointer: coarse)').matches)
 	{
 		const now = performance.now();
 		const isDoubleTap = now - lastTapTime < 250;
-		controls.touches.one = isDoubleTap && controls.currentAction !== CameraControls.ACTION.TOUCH_ZOOM ? CameraControls.ACTION.TOUCH_ZOOM : CameraControls.ACTION.TOUCH_ROTATE;
+		controls.touches.one = isDoubleTap && controls.currentAction !== CameraControls.ACTION.TOUCH_TRUCK ? CameraControls.ACTION.TOUCH_TRUCK : CameraControls.ACTION.TOUCH_ROTATE;
 		lastTapTime = now;
+		debug.textContent = controls.touches.one;
 	}
+	debug.textContent = 'true';
 }
+else debug.textContent = 'false';
 
 function OnKeyDown(event)
 {
